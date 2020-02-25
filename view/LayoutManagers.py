@@ -47,7 +47,7 @@ class BorderLayout(LayoutManager) :
                 component.setRect((ctrx, ctry, ctrw, top - ctry));
             if param == BorderLayout.BOTTOM :
                 component.setRect((ctrx, bottom, ctrw, ctry + ctrh - bottom));
-            print(param, component.getRect());
+            print(param, container.getRect(), component.getRect());
 
     def getPreferredSize(self, container, children) :
         leftWidth = 0;
@@ -145,4 +145,5 @@ class GridLayout(LayoutManager) :
         else :
             cols = math.ceil(itemCount / rows);
 
+        print("preferred", maxWidth, cols, maxHeight, rows, itemCount);
         return (maxWidth * cols, maxHeight * rows);

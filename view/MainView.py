@@ -95,8 +95,8 @@ class MainView :
             demodulatorPanel.add(demodulatorButton);
 
         rightMiddlePanel = Panel(BorderLayout());
-        rightMiddlePanel.add(sliderPanel, BorderLayout.TOP);
-        rightMiddlePanel.add(demodulatorPanel, BorderLayout.CENTER);
+        rightMiddlePanel.add(sliderPanel, BorderLayout.CENTER);
+        rightMiddlePanel.add(demodulatorPanel, BorderLayout.BOTTOM);
 
 
         settingsIcon = self.renderIcon('icons/settings.svg');
@@ -105,7 +105,7 @@ class MainView :
         bottomPanel = Panel(GridLayout(cols=2));
         bottomPanel.add(settingsButton);
 
-        rightPanel = Panel(GridLayout());
+        rightPanel = Panel(BorderLayout());
         rightPanel.add(topButtonPanel, BorderLayout.TOP);
         rightPanel.add(rightMiddlePanel, BorderLayout.CENTER);
         rightPanel.add(bottomPanel, BorderLayout.BOTTOM);

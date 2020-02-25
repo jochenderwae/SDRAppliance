@@ -168,7 +168,16 @@ class Button(UIComponent):
 class Spinner(UIComponent):
 	def __init__(self, value) :
 		super().__init__();
-		pass;
+		self.bg_color     = (0, 0, 0)
+
+	def getPreferredSize(self) :
+		w = 20;
+		h = 40;
+		return (w, h);
+
+	def doRender(self, screen) :
+		screen.fill(self.bg_color, self.rect)
+		pygame.draw.rect(screen, (0, 128, 0), self.rect, 1)
 
 class Slider(UIComponent):
 	def __init__(self, label, min=0, max=100) :
@@ -176,6 +185,16 @@ class Slider(UIComponent):
 		self.label = label;
 		self.min = min;
 		self.max = max;
+		self.bg_color     = (0, 0, 0)
+
+	def getPreferredSize(self) :
+		w = 20;
+		h = 100;
+		return (w, h);
+
+	def doRender(self, screen) :
+		screen.fill(self.bg_color, self.rect)
+		pygame.draw.rect(screen, (0, 0, 128), self.rect, 1)
 
 class Panel(UIComponent):
 	def __init__(self, layoutManager = None) :
