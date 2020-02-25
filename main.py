@@ -1,21 +1,28 @@
 #!/bin/python3
 
-from model.PluginModel import *;
-from radio.Radio import *;
+from model.Model import *;
+from controller.Controller import *;
+from view.MainView import *;
 
 class Application:
     def __init__(self):
-        self.pluginModel = PluginModel();
+        self.model = Model();
+        self.controller = Controller();
+        self.mainView = MainView();
 
     def start(self):
-        self.pluginModel.compilePlugins();
-        self.pluginModel.loadPlugins();
+        self.controller.setModel(self.model);
+        self.mainView.setController(self.controller);
 
-        radio = Radio();
-        radio.setDemod(self.pluginModel.getDemodPlugins()["FMRadio"]);
-        radio.start();
+        self.model.start();
+        self.controller.start();
+        self.mainView.start();
 
+        # mainView.start() is blocking. When it ends, the application can stop
 
+        self.mainView.stop();
+        self.controller.stop();
+        self.model.stop();
 
 
 def main():

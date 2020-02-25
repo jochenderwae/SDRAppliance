@@ -8,6 +8,7 @@ import osmosdr
 class Radio(gr.top_block):
 
     def __init__(self):
+        gr.top_block.__init__(self, "Top Block")
 
         ##################################################
         # Variables
@@ -16,7 +17,7 @@ class Radio(gr.top_block):
         self.rfSampleRate = 2048e3;
         self.audioSampleRate = 48000;
         self.gain = 20;
-        self.frequency = 102 * 1000000;
+        self.frequency = 102e6;
 
         ##################################################
         # Blocks
@@ -28,7 +29,7 @@ class Radio(gr.top_block):
         self.rtlsdrSource.set_sample_rate(self.rfSampleRate);
         self.rtlsdrSource.set_center_freq(self.frequency, 0);
         self.rtlsdrSource.set_freq_corr(0, 0);
-        self.rtlsdrSource.set_gain(gain, 0);
+        self.rtlsdrSource.set_gain(self.gain, 0);
         self.rtlsdrSource.set_if_gain(20, 0);
         self.rtlsdrSource.set_bb_gain(20, 0);
         self.rtlsdrSource.set_antenna('', 0);
@@ -39,26 +40,27 @@ class Radio(gr.top_block):
 
         self.audio = audio.sink(self.audioSampleRate, '', True);
 
+        self.connect((self.leftVolume, 0), (self.audio, 0));
+        self.connect((self.rightVolume, 0), (self.audio, 1));
+
         self.demod = None;
 
 
         ##################################################
         # Connections
         ##################################################
-        self.connect((self.leftVolume, 0), (self.audio, 0));
-        self.connect((self.rightVolume, 0), (self.audio, 1));
-        setDemod(self.demod);
+        #self.setDemod(self.demod);
 
-    def setDemod(demod) :
+    def setDemod(self, demod) :
         if self.demod != None:
             self.disconnect(self.demod);
         self.demod = demod;
         if self.demod != None:
-            self.connect((self.rtlsdr_source_0, 0), (self.demod, 0));
+            self.connect((self.rtlsdrSource, 0), (self.demod, 0));
             self.connect((self.demod, 0), (self.leftVolume, 0));
             self.connect((self.demod, 1), (self.rightVolume, 0));
-            self.demod.set_rf_samp_rate(self.rfsamprate);
-            self.demod.audio_sample_rate(self.audioSampleRate);
+            self.demod.set_rf_samp_rate(self.rfSampleRate);
+            self.demod.set_audio_sample_rate(self.audioSampleRate);
 
     def getVolume(self):
         return self.volume;

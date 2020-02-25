@@ -96,7 +96,7 @@ class top_block(gr.top_block, Qt.QWidget):
         self.rtlsdr_source_0.set_bandwidth(0, 0)
         self.blocks_multiply_const_vxx_0_0 = blocks.multiply_const_ff(volume)
         self.blocks_multiply_const_vxx_0 = blocks.multiply_const_ff(volume)
-        self.audio = audio.sink(48000, '', True)
+        self.audio = audio.sink(44100, '', True)
         self.FMReceiver_0 = FMReceiver(
             audio_sample_rate=48e3,
             rf_samp_rate=rfsamprate,

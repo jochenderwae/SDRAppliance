@@ -106,7 +106,7 @@ blocks:
     device_name: ''
     num_inputs: '2'
     ok_to_block: 'True'
-    samp_rate: '48000'
+    samp_rate: '44100'
   states:
     bus_sink: false
     bus_source: false

@@ -1,0 +1,8 @@
+
+* Waterfall - viewport encoder (#2.0 window / bandwidth, #2.1 height)
+* Frequency - clickable digits, up/down spinner - encoder (#1.0 value, #1.1 digit)
+* gain - encoder (#3.0)
+* demodulator selection (screen)
+* audio volume - encoder (#3.1)
+* Window function (settings sub menu)
+* exit and settings
