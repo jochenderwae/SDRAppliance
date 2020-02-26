@@ -5,37 +5,31 @@ class SpectrumPanel(UIComponent):
     def __init__(self, model) :
         super().__init__();
         self.model = model;
-        self.bg_color     = (0, 0, 0)
 
     def getPreferredSize(self) :
-        return (400, 100);
+        return (300, 100);
 
     def doRender(self, screen) :
-        screen.fill(self.bg_color, self.rect)
-        pygame.draw.rect(screen, (128, 0, 0), self.rect, 1)
+        super().doRender(screen);
 
 class BandPanel(UIComponent) :
     def __init__(self, model) :
         super().__init__();
         self.model = model;
-        self.bg_color     = (0, 0, 0)
 
     def getPreferredSize(self) :
-        return (400, 50);
+        return (300, 50);
 
     def doRender(self, screen) :
-        screen.fill(self.bg_color, self.rect)
-        pygame.draw.rect(screen, (128, 0, 0), self.rect, 1)
+        super().doRender(screen);
 
 class WaterfallPanel(UIComponent) :
     def __init__(self, model) :
         super().__init__();
         self.model = model;
-        self.bg_color     = (0, 0, 0)
 
     def getPreferredSize(self) :
-        return (400, 200);
+        return (300, 200);
 
     def doRender(self, screen) :
-        screen.fill(self.bg_color, self.rect)
-        pygame.draw.rect(screen, (128, 0, 0), self.rect, 1)
+        super().doRender(screen);

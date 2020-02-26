@@ -24,6 +24,8 @@
 # SOFTWARE.
 # Enhancements over the original freqshow by Dan Stixrud, WQ7T
 import pygame
+import time
+from view.Styling import style
 
 
 
@@ -67,11 +69,21 @@ def render_text(text, size=18, fg=( 255, 255, 255), bg=(19, 19, 30)):
 		return get_font(size).render(text, True, fg)
 
 class UIComponent(object):
-	def __init__(self) :
+	idCounter = 0;
+
+	def __init__(self, id=None) :
 		self.dirty = True;
 		self.rect = (0, 0, 0, 0);
 		self.visible = True;
 		self.preferredSize = (0, 0);
+		if id :
+			self.id = id;
+		else :
+			self.id = "UIComponent_{}".format(UIComponent.idCounter);
+			UIComponent.idCounter += 1;
+
+	def getId(self) :
+		return self.id;
 
 	def setRect(self, rect) :
 		if self.rect != rect:
@@ -102,6 +114,21 @@ class UIComponent(object):
 			self.dirty = False;
 
 	def doRender(self, screen) :
+		backgroundColor = style.getStyle(self, "background.color");
+		screen.fill(backgroundColor, self.rect);
+
+		borderColor = style.getStyle(self, "border.color");
+		borderSize  = style.getStyle(self, "border.size");
+		if borderColor and borderSize :
+			pygame.draw.rect(screen, borderColor, self.rect, borderSize);
+
+	def handleMouseEvent(self, event) :
+		mouseX, mouseY = event.dict['pos'];
+		x, y, w, h = self.getRect();
+		if x <= mouseX < x + w and y <= mouseY <= y + h :
+			self.doHandleMouseEvent(event);
+
+	def doHandleMouseEvent(self, event) :
 		pass;
 
 class Button(UIComponent):
@@ -116,29 +143,31 @@ class Button(UIComponent):
 	padding_px   = 2
 	border_px    = 2
 	font_size    = 18
+	CLICK_DEBOUNCE = 0.04
 
-	def __init__(self, textOrIcon=None, click=None, font_size=None, bg_color=None):
+	def __init__(self, textOrIcon=None):
 		super().__init__();
 		self.label = None;
 		self.text = None;
 		self.icon = None;
+		self.clickEvents = [];
+		self.mouseDownTime = 0;
 
 		if isinstance(textOrIcon, str) :
 			self.text = textOrIcon;
 			self.label = render_text(self.text, size=self.font_size, fg=self.fg_color, bg=self.bg_color)
 		if isinstance(textOrIcon, pygame.Surface):
 			self.icon = textOrIcon;
-		#self.bg_color = bg_color if bg_color is not None else self.bg_color
-		#self.font_size = font_size if font_size is not None else self.font_size
-		#self.click_func = click
-		# Determine rendered dimensions based on padding.
-		#x, y, width, height = rect
-		#x += self.padding_px
-		#y += self.padding_px
-		#width -= 2*self.padding_px
-		#height -= 2*self.padding_px
-		#self.rect = (x, y, width, height)
-		# Draw label centered in the button for quick rendering later.
+
+	def addClickEvent(self, event) :
+		self.clickEvents.append(event);
+
+	def doHandleMouseEvent(self, event) :
+		if event.type == pygame.MOUSEBUTTONDOWN :
+			if time.time() - self.mouseDownTime > Button.CLICK_DEBOUNCE :
+				self.mouseDownTime = time.time();
+				for handler in self.clickEvents :
+					handler(self);
 
 	def getPreferredSize(self) :
 		w = h = 20;
@@ -146,11 +175,11 @@ class Button(UIComponent):
 			x, y, w, h = self.label.get_rect();
 		if self.icon :
 			w, h = self.icon.get_size();
-		return (w, h);
+		size = max(w, h);
+		return (size, size);
 
 	def doRender(self, screen) :
-		screen.fill(self.bg_color, self.rect)
-		pygame.draw.rect(screen, self.border_color, self.rect, self.border_px)
+		super().doRender(screen);
 		if self.label:
 			self.label_pos = align(self.label.get_rect(), self.rect)
 			screen.blit(self.label, self.label_pos)
@@ -158,17 +187,9 @@ class Button(UIComponent):
 			pos = align(self.icon.get_rect(), self.rect)
 			screen.blit(self.icon, pos)
 
-	def click(self, location):
-		x, y, width, height = self.rect
-		mx, my = location
-		if mx >= x and mx <= (x + width) and my >= y and my <= (y + height) \
-			and self.click_func is not None:
-			self.click_func(self)
-
 class Spinner(UIComponent):
 	def __init__(self, value) :
 		super().__init__();
-		self.bg_color     = (0, 0, 0)
 
 	def getPreferredSize(self) :
 		w = 20;
@@ -176,8 +197,7 @@ class Spinner(UIComponent):
 		return (w, h);
 
 	def doRender(self, screen) :
-		screen.fill(self.bg_color, self.rect)
-		pygame.draw.rect(screen, (0, 128, 0), self.rect, 1)
+		super().doRender(screen);
 
 class Slider(UIComponent):
 	def __init__(self, label, min=0, max=100) :
@@ -185,7 +205,6 @@ class Slider(UIComponent):
 		self.label = label;
 		self.min = min;
 		self.max = max;
-		self.bg_color     = (0, 0, 0)
 
 	def getPreferredSize(self) :
 		w = 20;
@@ -193,8 +212,7 @@ class Slider(UIComponent):
 		return (w, h);
 
 	def doRender(self, screen) :
-		screen.fill(self.bg_color, self.rect)
-		pygame.draw.rect(screen, (0, 0, 128), self.rect, 1)
+		super().doRender(screen);
 
 class Panel(UIComponent):
 	def __init__(self, layoutManager = None) :
@@ -220,24 +238,14 @@ class Panel(UIComponent):
 		for child in self.children.keys() :
 			child.render(screen);
 
+	def doHandleMouseEvent(self, event) :
+		for child in self.children.keys() :
+			child.handleMouseEvent(event);
+
+
 class ButtonGrid(object):
 	def __init__(self, width, height, cols, rows):
-		self.col_size = width / cols
-		self.row_size = height / rows
-		self.buttons = []
-
-	def add(self, col, row, text, rowspan=1, colspan=1, **kwargs):
-		x = col*self.col_size
-		y = row*self.row_size
-		width = colspan*self.col_size
-		height = rowspan*self.row_size
-		self.buttons.append(Button((x,y,width,height), text, **kwargs))
-
-	def render(self, screen):
-		"""Render buttons on the provided surface."""
-		# Render buttons.
-		for button in self.buttons:
-			button.render(screen)
+		pass;
 
 	def click(self, location):
 		"""Handle click events at the provided location tuple (x, y) for all the

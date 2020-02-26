@@ -47,7 +47,6 @@ class BorderLayout(LayoutManager) :
                 component.setRect((ctrx, ctry, ctrw, top - ctry));
             if param == BorderLayout.BOTTOM :
                 component.setRect((ctrx, bottom, ctrw, ctry + ctrh - bottom));
-            print(param, container.getRect(), component.getRect());
 
     def getPreferredSize(self, container, children) :
         leftWidth = 0;
@@ -60,16 +59,20 @@ class BorderLayout(LayoutManager) :
         for component, param in children.items() :
             width, height = component.getPreferredSize();
             if param == None or param == BorderLayout.CENTER :
-                centerWidth = width;
-                centerHeight = height;
+                centerWidth = max(width, centerWidth);
+                centerHeight = max(height, centerHeight);
             if param == BorderLayout.LEFT :
-                leftWidth = width;
+                leftWidth = max(width, leftWidth);
+                centerHeight = max(height, centerHeight);
             if param == BorderLayout.RIGHT :
-                rightWidth = width;
+                rightWidth = max(width, rightWidth);
+                centerHeight = max(height, centerHeight);
             if param == BorderLayout.TOP :
-                topHeight = height;
+                centerWidth = max(width, centerWidth);
+                topHeight = max(height, topHeight);
             if param == BorderLayout.BOTTOM :
-                bottomHeight = height;
+                centerWidth = max(width, centerWidth);
+                bottomHeight = max(height, bottomHeight);
         return (leftWidth + centerWidth + rightWidth, topHeight + centerHeight + bottomHeight);
 
 
@@ -105,7 +108,6 @@ class GridLayout(LayoutManager) :
         componentX = 0;
         componentY = 0;
 
-        print(rows, componentWith, cols, componentHeight, ctrw, ctrh);
         for row in range(rows) :
             for col in range(cols) :
                 if i >= itemCount :
@@ -120,7 +122,6 @@ class GridLayout(LayoutManager) :
                 else :
                     height = componentHeight;
                 component.setRect((ctrx + col * componentWith, ctry + row * componentHeight, width, height));
-                print((col * componentWith, row * componentHeight, width, height));
                 i += 1;
 
     def getPreferredSize(self, container, children) :
@@ -145,5 +146,63 @@ class GridLayout(LayoutManager) :
         else :
             cols = math.ceil(itemCount / rows);
 
-        print("preferred", maxWidth, cols, maxHeight, rows, itemCount);
         return (maxWidth * cols, maxHeight * rows);
+
+
+class AlignLayout(LayoutManager) :
+    TOP_LEFT      = "AlignLayout_TOP_LEFT";
+    TOP_CENTER    = "AlignLayout_TOP_CENTER";
+    TOP_RIGHT     = "AlignLayout_TOP_RIGHT";
+    CENTER_LEFT   = "AlignLayout_CENTER_LEFT";
+    CENTER        = "AlignLayout_CENTER";
+    CENTER_RIGHT  = "AlignLayout_CENTER_RIGHT";
+    BOTTOM_LEFT   = "AlignLayout_BOTTOM_LEFT";
+    BOTTOM_CENTER = "AlignLayout_BOTTOM_CENTER";
+    BOTTOM_RIGHT  = "AlignLayout_BOTTOM_RIGHT";
+
+    def __init__(self, anchor=None) :
+        self.anchor = anchor;
+        if not self.anchor :
+            self.anchor = AlignLayout.CENTER;
+
+    def apply(self, container, children) :
+        preferredWidth, preferredHeight = self.getPreferredSize(container, children);
+        children = list(children.keys());
+
+        ctrx, ctry, ctrw, ctrh = container.getRect();
+
+        for component in children:
+            x = ctrx;
+            y = ctry;
+            width, height = component.getPreferredSize();
+            if width > ctrw :
+                width = ctrw;
+            else :
+                if self.anchor == AlignLayout.TOP_LEFT or self.anchor == AlignLayout.CENTER_LEFT or self.anchor == AlignLayout.BOTTOM_LEFT :
+                    pass;
+                elif self.anchor == AlignLayout.TOP_CENTER or self.anchor == AlignLayout.CENTER or self.anchor == AlignLayout.BOTTOM_CENTER :
+                    x = ctrx + ctrw / 2 - width / 2;
+                elif self.anchor == AlignLayout.TOP_RIGHT or self.anchor == AlignLayout.CENTER_RIGHT or self.anchor == AlignLayout.BOTTOM_RIGHT :
+                    x = ctrx + ctrw - width;
+
+            if height > ctrh :
+                height = ctrh;
+            else :
+                if self.anchor == AlignLayout.TOP_LEFT or self.anchor == AlignLayout.TOP_CENTER or self.anchor == AlignLayout.TOP_RIGHT :
+                    pass;
+                elif self.anchor == AlignLayout.CENTER_LEFT or self.anchor == AlignLayout.CENTER or self.anchor == AlignLayout.CENTER_RIGHT :
+                    y = ctry + ctrh / 2 - height / 2;
+                elif self.anchor == AlignLayout.BOTTOM_LEFT or self.anchor == AlignLayout.BOTTOM_CENTER or self.anchor == AlignLayout.BOTTOM_RIGHT :
+                    y = ctry + ctrh - height;
+            component.setRect((x, y, width, height));
+
+
+    def getPreferredSize(self, container, children) :
+        maxWidth = 0;
+        maxHeight = 0;
+        children = list(children.keys());
+        for component in children :
+            width, height = component.getPreferredSize();
+            maxWidth = max(maxWidth, width);
+            maxHeight = max(maxHeight, height);
+        return (maxWidth, maxHeight);

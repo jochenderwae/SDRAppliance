@@ -4,14 +4,12 @@
 import pygame
 from svg import Parser, Rasterizer
 import os
-import time
 
 from view.LayoutManagers import *
 from view.UIComponents import *
 from view.RadioComponents import *
 
 MAIN_BG        = (   5,  45,  45) # Dark Brown
-CLICK_DEBOUNCE  = 0.04
 DEBUG = True;
 
 
@@ -19,6 +17,7 @@ class MainView :
     def __init__(self) :
         self.controller = None;
         self.screenPanel = None;
+        self.radioPlaying = False;
 
         # set parameters if these devices are available
         if os.path.isfile("/dev/fb1") :
@@ -41,12 +40,7 @@ class MainView :
             self.screen = pygame.display.set_mode(self.size, pygame.FULLSCREEN | pygame.DOUBLEBUF | pygame.HWSURFACE);
         self.screen.fill(MAIN_BG);
         pygame.display.update();
-        # Create model and controller.
-        #fsmodel = model.FreqShowModel(size[0], size[1]);
-        #fscontroller = controller.FreqShowController(fsmodel);
-        #time.sleep(2.0)
-        # Main loop to process events and render current view.
-        #self.buildUI();
+
 
     def buildUI(self) :
         frequencyPanel = Panel(GridLayout(rows=1));
@@ -56,12 +50,15 @@ class MainView :
             button = Spinner(0);
             frequencyPanel.add(button);
 
+        frequencyCenterPanel = Panel(AlignLayout(AlignLayout.CENTER));
+        frequencyCenterPanel.add(frequencyPanel);
+
         spectrumPanel = SpectrumPanel(self.controller);
         bandPanel = BandPanel(self.controller);
         waterfallPanel = WaterfallPanel(self.controller);
 
         topLeftPanel = Panel(BorderLayout());
-        topLeftPanel.add(frequencyPanel, BorderLayout.TOP);
+        topLeftPanel.add(frequencyCenterPanel, BorderLayout.TOP);
         topLeftPanel.add(spectrumPanel, BorderLayout.CENTER);
         topLeftPanel.add(bandPanel, BorderLayout.BOTTOM);
 
@@ -73,7 +70,10 @@ class MainView :
         playIcon = self.renderIcon('icons/play.svg');
         exitIcon = self.renderIcon('icons/x.svg');
         startButton = Button(playIcon);
+        startButton.addClickEvent(self.startPause);
+
         exitButton = Button(exitIcon);
+        exitButton.addClickEvent(self.quitApplication);
 
         topButtonPanel = Panel(GridLayout(cols=2));
         topButtonPanel.add(startButton);
@@ -88,27 +88,22 @@ class MainView :
         sliderPanel.add(gainSlider);
 
 
-        demodulatorPanel = Panel(GridLayout(cols=2));
+        bottomButtonPanel = Panel(GridLayout(cols=2));
         demodulators = self.controller.getDemodulators();
         for demodulator in demodulators :
             demodulatorButton = Button(demodulator);
-            demodulatorPanel.add(demodulatorButton);
-
-        rightMiddlePanel = Panel(BorderLayout());
-        rightMiddlePanel.add(sliderPanel, BorderLayout.CENTER);
-        rightMiddlePanel.add(demodulatorPanel, BorderLayout.BOTTOM);
-
+            bottomButtonPanel.add(demodulatorButton);
 
         settingsIcon = self.renderIcon('icons/settings.svg');
         settingsButton = Button(settingsIcon);
 
-        bottomPanel = Panel(GridLayout(cols=2));
-        bottomPanel.add(settingsButton);
+        bottomButtonPanel.add(settingsButton);
+
 
         rightPanel = Panel(BorderLayout());
         rightPanel.add(topButtonPanel, BorderLayout.TOP);
-        rightPanel.add(rightMiddlePanel, BorderLayout.CENTER);
-        rightPanel.add(bottomPanel, BorderLayout.BOTTOM);
+        rightPanel.add(sliderPanel, BorderLayout.CENTER);
+        rightPanel.add(bottomButtonPanel, BorderLayout.BOTTOM);
 
         self.screenPanel = Panel(BorderLayout());
         width, height = self.size;
@@ -134,23 +129,30 @@ class MainView :
     def getController(self) :
         return self.controller;
 
+    def quitApplication(self, source) :
+        self.keepRunning = False;
+
+    def startPause(self, source) :
+        if not self.radioPlaying :
+            self.radioPlaying = True;
+            self.controller.startRadio();
+        else :
+            self.radioPlaying = False;
+            self.controller.stopRadio();
+
     def start(self) :
         self.buildUI();
         lastclick = 0;
-        keepRunning = True;
-        while keepRunning:
+        self.keepRunning = True;
+        while self.keepRunning:
             # Process any events (only mouse events for now).
             for event in pygame.event.get():
-                if event.type is pygame.MOUSEBUTTONDOWN \
-                and (time.time() - lastclick) >= CLICK_DEBOUNCE:
-                    lastclick = time.time();
-                    keepRunning = False;
-            #fscontroller.current().click(pygame.mouse.get_pos());
-            # Update and render the current view.
-            #fscontroller.current().render(screen);
+                if event.type == pygame.QUIT :
+                    self.quitApplication();
+                elif event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.MOUSEBUTTONUP or event.type == pygame.MOUSEMOTION :
+                    self.screenPanel.doHandleMouseEvent(event);
             self.screenPanel.render(self.screen);
             pygame.display.update();
-        print("end loop");
 
     def stop(self) :
         pass;

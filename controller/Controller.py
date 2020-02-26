@@ -15,7 +15,7 @@ class Controller:
     def start(self) :
         plugins = self.model.getPluginModel().getDemodPlugins();
         self.radio.setDemod(plugins["FMReceiver"].createInstance());
-        self.startRadio();
+        #self.startRadio();
 
     def stop(self) :
         self.stopRadio();
