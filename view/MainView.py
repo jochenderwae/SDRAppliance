@@ -54,8 +54,11 @@ class MainView :
         frequencyCenterPanel.add(frequencyPanel);
 
         spectrumPanel = SpectrumPanel(self.controller);
+        self.controller.addFFTDataListener(spectrumPanel.dataListener);
         bandPanel = BandPanel(self.controller);
+        self.controller.addFFTDataListener(bandPanel.dataListener);
         waterfallPanel = WaterfallPanel(self.controller);
+        self.controller.addFFTDataListener(waterfallPanel.dataListener);
 
         topLeftPanel = Panel(BorderLayout());
         topLeftPanel.add(frequencyCenterPanel, BorderLayout.TOP);
@@ -129,7 +132,7 @@ class MainView :
     def getController(self) :
         return self.controller;
 
-    def quitApplication(self, source) :
+    def quitApplication(self, source=None) :
         self.keepRunning = False;
 
     def startPause(self, source) :

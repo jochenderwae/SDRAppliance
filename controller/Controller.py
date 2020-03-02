@@ -34,3 +34,6 @@ class Controller:
         demodulators = self.model.getPluginModel().getDemodPlugins();
         demodulator = demodulators[key];
         self.radio.setDemod(demodulator.createInstance());
+
+    def addFFTDataListener(self, listener) :
+        self.radio.addFFTDataListener(listener);

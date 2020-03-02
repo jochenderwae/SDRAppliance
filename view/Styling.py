@@ -31,5 +31,9 @@ style = Styling({
 	"border.color.Button": (128, 128, 128),
 	"border.size.Button":  1,
 
+    "line.color.SpectrumPanel":   (150, 255, 255),
+	"border.color.SpectrumPanel": (128, 128, 128),
+	"border.size.SpectrumPanel":  1,
+
 	"padding":          (5, 5, 5, 5),
 });
