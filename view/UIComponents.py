@@ -50,23 +50,14 @@ def align(child, parent, horizontal=ALIGN_CENTER, vertical=ALIGN_CENTER,
 	return (px+(horizontal*pwidth-horizontal*cwidth)+hpad,
 			py+(vertical*pheight-vertical*cheight)+vpad)
 
-font_cache = {}
-def get_font(size):
-	"""Get font of the specified size.  Will cache fonts internally for faster
-	repeated access to them.
-	"""
-	if size not in font_cache:
-		font_cache[size] = pygame.font.Font(None, size)
-	return font_cache[size]
-
-def render_text(text, size=18, fg=( 255, 255, 255), bg=(19, 19, 30)):
+def render_text(text, font=None, fg=( 255, 255, 255), bg=(19, 19, 30)):
 	"""Render the provided text to a surface which is returned."""
 	if bg is not None:
 		# Optimized case when the background is known.
-		return get_font(size).render(text, True, fg, bg)
+		return font.render(text, True, fg, bg)
 	else:
 		# Less optimized case with transparent background.
-		return get_font(size).render(text, True, fg)
+		return font.render(text, True, fg)
 
 class UIComponent(object):
 	idCounter = 0;
@@ -132,17 +123,6 @@ class UIComponent(object):
 		pass;
 
 class Button(UIComponent):
-	# Default color and other button configuration.  Can override these values
-	# to change all buttons.
-	fg_color     = (255, 255, 255)
-	#fg_color     = ( 60, 255, 255)
-	bg_color     = (60, 60, 60)
-	#bg_color     = ( 19,  19,  30)
-	border_color = (200, 200, 200)
-	#border_color = ( 19,  19,  30)
-	padding_px   = 2
-	border_px    = 2
-	font_size    = 18
 	CLICK_DEBOUNCE = 0.04
 
 	def __init__(self, textOrIcon=None):
@@ -155,7 +135,7 @@ class Button(UIComponent):
 
 		if isinstance(textOrIcon, str) :
 			self.text = textOrIcon;
-			self.label = render_text(self.text, size=self.font_size, fg=self.fg_color, bg=self.bg_color)
+			self.label = render_text(self.text, font=style.getFont(self, "font"), fg=style.getStyle(self, "foreground.color"), bg=style.getStyle(self, "background.color"));
 		if isinstance(textOrIcon, pygame.Surface):
 			self.icon = textOrIcon;
 

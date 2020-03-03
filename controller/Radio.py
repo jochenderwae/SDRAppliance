@@ -8,7 +8,7 @@ import osmosdr
 import numpy
 
 class FFTDataSink(gr.sync_block):
-    def __init__(self, fftBinSize, rfSampleRate):
+    def __init__(self, radio, fftBinSize, rfSampleRate):
         gr.sync_block.__init__(
             self,
             name = "Vector sink",
@@ -16,6 +16,7 @@ class FFTDataSink(gr.sync_block):
             out_sig = None,
         );
 
+        self.radio = radio;
         self.fftBinSize = fftBinSize;
         self.windowMin = 0;
         self.windowMax = 1;
@@ -34,6 +35,10 @@ class FFTDataSink(gr.sync_block):
         self.windowMax = 1 - zoom;
         self.zoom = zoom;
         return zoom;
+
+    def scaleZoom(self, x):
+        x = max(0, min(x, 1));
+        return x  * (self.windowMax - self.windowMin) + self.windowMin;
 
     def work(self, input_items, output_items):
         data = numpy.fft.fftshift(input_items);
@@ -63,7 +68,7 @@ class FFTDataSink(gr.sync_block):
             #self.main.signal_progress_bar.setValue(self.ss)
             #self.main.signal_progress_bar.setFormat("%.1f db" % self.ss)
             for listener in self.listeners :
-                listener(outputData);
+                listener(self.radio, outputData);
         return len(input_items)
 
 
@@ -79,7 +84,7 @@ class Radio(gr.top_block):
         self.rfSampleRate = 2560000;
         self.audioSampleRate = 48000;
         self.gain = 20;
-        self.frequency = 102e6;
+        self.frequency = 102.3e6; #120e4; #27e6; #102e6;
         self.fftBinSize = 4096;
         self.frameRate = 10;
         self.average = 0.82675;
@@ -113,7 +118,7 @@ class Radio(gr.top_block):
 
 
         # this is the main FFT display
-        self.fftDataSink = FFTDataSink(fftBinSize=self.fftBinSize, rfSampleRate=self.rfSampleRate);
+        self.fftDataSink = FFTDataSink(self, fftBinSize=self.fftBinSize, rfSampleRate=self.rfSampleRate);
 
         self.leftVolume  = blocks.multiply_const_ff(self.volume);
         self.rightVolume = blocks.multiply_const_ff(self.volume);
@@ -144,6 +149,9 @@ class Radio(gr.top_block):
             self.connect((self.demod, 1), (self.rightVolume, 0));
             self.demod.set_rf_samp_rate(self.rfSampleRate);
             self.demod.set_audio_sample_rate(self.audioSampleRate);
+
+    def getBinFrequency(self):
+        return self.rfSampleRate / self.fftBinSize;
 
     def addFFTDataListener(self, listener) :
         self.fftDataSink.addListener(listener);

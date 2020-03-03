@@ -3,6 +3,7 @@ import numpy
 import math
 from view.UIComponents import UIComponent
 from view.Styling import style
+from quantiphy import Quantity
 
 WATERFALL_GRAD = [(0, 0, 255), (0, 255, 255), (255, 255, 0), (255, 0, 0)]
 
@@ -46,8 +47,8 @@ class SpectrumPanel(UIComponent):
         self.data = None;
         w, h = self.getPreferredSize();
         self.graph = pygame.Surface((w, h));
-        self.min_intensity = -70;
-        self.range = 70;
+        self.minPower = 30;
+        self.range = 60;
 
     def getPreferredSize(self) :
         return (300, 100);
@@ -68,13 +69,13 @@ class SpectrumPanel(UIComponent):
         dataLength = len(self.data);
 
         # Scale the FFT values to the range 0 to 1.
-        self.data = 1 - (numpy.array(self.data, dtype=float) - self.min_intensity) / self.range;
+        self.data = - (numpy.array(self.data, dtype=float) + self.minPower) / self.range;
         self.data = numpy.pad(self.data, int((w - (dataLength%w)) / 2), mode='edge');
         self.data = numpy.reshape(self.data, (w, int(len(self.data)/w)));
         self.data = numpy.mean(self.data, axis=1);
 
         backgroundColor = style.getStyle(self, "background.color");
-        lineColor = style.getStyle(self, "line.color");
+        lineColor = style.getStyle(self, "line.color.graph");
         self.graph.lock();
         self.graph.fill(backgroundColor, (0, 0, w, h));
         lasty = self.data[0];
@@ -86,7 +87,7 @@ class SpectrumPanel(UIComponent):
         self.graph.unlock()
         screen.blit(self.graph, (x, y), area=(0, 0, w, h))
 
-    def dataListener(self, data) :
+    def dataListener(self, radio, data) :
         self.data = data;
         self.invalidate();
 
@@ -95,15 +96,80 @@ class BandPanel(UIComponent) :
         super().__init__();
         self.model = model;
         self.data = None;
+        self.labels = {};
+        self.tickLines = [];
+        self.midLabel = None;
 
     def getPreferredSize(self) :
         return (300, 50);
 
     def doRender(self, screen) :
         super().doRender(screen);
+        if not self.data :
+            return;
 
-    def dataListener(self, data) :
+        minorLineColor = style.getStyle(self, "line.color.minor");
+        majorLineColor = style.getStyle(self, "line.color.major");
+        centerLineColor = style.getStyle(self, "line.color.center");
+        dataLength = len(self.data);
+        x, y, w, h = self.getRect();
+
+        midX = dataLength / 2;
+        offset = w - (dataLength%w);
+        dataLength = dataLength + offset;
+
+        for tickX in self.tickLines :
+            tickX = tickX + offset / 2;
+            tickX = int(tickX * w / dataLength);
+            pygame.draw.line(screen, minorLineColor, (x + tickX, y), (x + tickX, y + 10));
+
+
+        for gx in self.labels:
+            label = self.labels[gx];
+            labelX,labelY,labelWidth,labelHeight = label.get_rect();
+            gx = gx + offset / 2;
+            gx = int(gx * w / dataLength);
+            pygame.draw.line(screen, majorLineColor, (x + gx, y), (x + gx, y + h));
+            screen.blit(label,(x + gx - labelWidth / 2, y + h - labelHeight));
+
+        labelX,labelY,labelWidth,labelHeight = self.midLabel.get_rect();
+        midX = midX + offset / 2;
+        midX = int(midX * w / dataLength);
+        pygame.draw.line(screen, centerLineColor, (x + midX, y), (x + midX, y + h));
+        screen.blit(self.midLabel,(x + midX - labelWidth / 2, y + labelHeight));
+
+    def dataListener(self, radio, data) :
         self.data = data;
+
+        font = style.getFont(self, "font");
+        foreground = style.getStyle(self, "foreground.color");
+        background = style.getStyle(self, "background.color");
+
+        mid = len(data)/2;
+
+        digits = math.ceil(math.log10(radio.frequency));
+        majorDivisor = math.pow(10, digits - 3);
+        nearestFrequency = math.floor(radio.frequency / majorDivisor) * majorDivisor;
+
+        binFrequency = radio.getBinFrequency();
+
+        self.midLabel = font.render("{:9s}".format(Quantity(radio.frequency, "Hz")), True, foreground, background);
+
+        self.tickLines = [];
+        for i in range(19) :
+            if i == 10 :
+                continue;
+            pos = 1e5 * i;
+            if mid + (nearestFrequency + pos - radio.frequency) / binFrequency < radio.fftBinSize :
+                self.tickLines.append(mid + (nearestFrequency + pos - radio.frequency) / binFrequency);
+            if mid + (nearestFrequency - pos - radio.frequency) / binFrequency > 0 :
+                self.tickLines.append(mid + (nearestFrequency - pos - radio.frequency) / binFrequency);
+
+        for step in [-1e6, 0, 1e6]:
+            if not nearestFrequency + step == radio.frequency:
+                binsOffset = (nearestFrequency - radio.frequency + step) / binFrequency;
+                self.labels[mid + binsOffset] = font.render("{:9s}".format(Quantity(nearestFrequency + step, "Hz")), True, foreground, background);
+
         self.invalidate();
 
 class WaterfallPanel(UIComponent) :
@@ -114,8 +180,8 @@ class WaterfallPanel(UIComponent) :
         w, h = self.getPreferredSize();
         self.waterfall = pygame.Surface((w, h));
         self.color_func = gradient_func(WATERFALL_GRAD);
-        self.min_intensity = -70;
-        self.range = 70;
+        self.minPower = 30;
+        self.range = 60;
 
     def getPreferredSize(self) :
         return (300, 400);
@@ -136,10 +202,10 @@ class WaterfallPanel(UIComponent) :
         dataLength = len(self.data);
 
         # Scroll up the waterfall display.
-        self.waterfall.scroll(0, -1);
+        self.waterfall.scroll(0, 1);
 
         # Scale the FFT values to the range 0 to 1.
-        self.data = (numpy.array(self.data, dtype=float) - self.min_intensity) / self.range;
+        self.data = - (numpy.array(self.data, dtype=float) + self.minPower) / self.range;
         self.data = numpy.pad(self.data, int((w - (dataLength%w)) / 2), mode='edge');
         self.data = numpy.reshape(self.data, (w, int(len(self.data)/w)));
         self.data = numpy.mean(self.data, axis=1);
@@ -148,11 +214,11 @@ class WaterfallPanel(UIComponent) :
         self.waterfall.lock();
 
         for gx in range(w) :
-            power = max(min(self.data[gx], 1.0), 0.0);
-            self.waterfall.set_at((gx, h-1), self.color_func(power))
+            power = max(min(1 - self.data[gx], 1.0), 0.0);
+            self.waterfall.set_at((gx, 0), self.color_func(power))
         self.waterfall.unlock()
         screen.blit(self.waterfall, (x, y), area=(0, 0, w, h))
 
-    def dataListener(self, data) :
+    def dataListener(self, radio, data) :
         self.data = data;
         self.invalidate();

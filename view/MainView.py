@@ -2,12 +2,12 @@
 
 
 import pygame
-from svg import Parser, Rasterizer
 import os
 
 from view.LayoutManagers import *
 from view.UIComponents import *
 from view.RadioComponents import *
+from view.Styling import style
 
 MAIN_BG        = (   5,  45,  45) # Dark Brown
 DEBUG = True;
@@ -42,6 +42,9 @@ class MainView :
         pygame.display.update();
 
 
+    def getId(self) :
+        return "MainView";
+
     def buildUI(self) :
         frequencyPanel = Panel(GridLayout(rows=1));
         digits = 10;
@@ -70,12 +73,10 @@ class MainView :
         leftPanel.add(waterfallPanel, BorderLayout.BOTTOM);
 
 
-        playIcon = self.renderIcon('icons/play.svg');
-        exitIcon = self.renderIcon('icons/x.svg');
-        startButton = Button(playIcon);
+        startButton = Button(style.getIcon(self, "icon.play"));
         startButton.addClickEvent(self.startPause);
 
-        exitButton = Button(exitIcon);
+        exitButton = Button(style.getIcon(self, "icon.close"));
         exitButton.addClickEvent(self.quitApplication);
 
         topButtonPanel = Panel(GridLayout(cols=2));
@@ -97,8 +98,7 @@ class MainView :
             demodulatorButton = Button(demodulator);
             bottomButtonPanel.add(demodulatorButton);
 
-        settingsIcon = self.renderIcon('icons/settings.svg');
-        settingsButton = Button(settingsIcon);
+        settingsButton = Button(style.getIcon(self, "icon.settings"));
 
         bottomButtonPanel.add(settingsButton);
 
@@ -113,18 +113,6 @@ class MainView :
         self.screenPanel.setRect((0, 0, width, height));
         self.screenPanel.add(leftPanel, BorderLayout.CENTER);
         self.screenPanel.add(rightPanel, BorderLayout.RIGHT);
-
-
-    def renderIcon(self, path, size=None) :
-        if size is None:
-            w = h = 32;
-        else:
-            w, h = size;
-        svg = Parser.parse_file(path);
-        rast = Rasterizer();
-        buff = rast.rasterize(svg, w, h);
-        return pygame.image.frombuffer(buff, (w, h), 'ARGB');
-
 
     def setController(self, controller) :
         self.controller = controller;
