@@ -55,6 +55,9 @@ class MainView :
             button = Spinner(0);
             self.frequencySpinnerGroup.add(button);
             frequencyPanel.add(button);
+            if (digits - digit - 1) % 3 == 0 and digit < digits - 1 :
+                frequencyPanel.add(Label("."));
+        frequencyPanel.add(Label("Hz"));
         self.frequencySpinnerGroup.setValue(self.controller.radio.getFrequency());
         self.frequencySpinnerGroup.addUpdateHandler(self.frequencyUpdateListener);
 

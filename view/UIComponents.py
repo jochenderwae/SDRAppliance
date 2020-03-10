@@ -154,6 +154,28 @@ class UIComponent(object):
 	def renderBorder(self, screen):
 		pass;
 
+class Label(UIComponent):
+
+	def __init__(self, text=None):
+		super().__init__();
+		self.label = None;
+		self.text = text;
+		self.font = style.getFont(self, "font");
+
+		if self.text is None :
+			self.text = "";
+
+		self.label = self.buildLabel(self.text, font=self.font);
+
+	def getPreferredSize(self) :
+		x, y, w, h = self.label.get_rect();
+		return (w, max(h, self.font.get_linesize()));
+
+	def doRender(self, screen) :
+		super().doRender(screen);
+		self.label_pos = align(self.label.get_rect(), self.rect);
+		screen.blit(self.label, self.label_pos);
+
 class Button(UIComponent):
 	CLICK_DEBOUNCE = 0.04
 
