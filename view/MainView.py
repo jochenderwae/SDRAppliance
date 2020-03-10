@@ -18,6 +18,7 @@ class MainView :
         self.controller = None;
         self.screenPanel = None;
         self.radioPlaying = False;
+        self.frequencySpinnerGroup = None;
 
         # set parameters if these devices are available
         if os.path.isfile("/dev/fb1") :
@@ -48,10 +49,14 @@ class MainView :
     def buildUI(self) :
         frequencyPanel = Panel(GridLayout(rows=1));
         digits = 10;
+        self.frequencySpinnerGroup = SpinnerGroup();
         for digit in range(digits):
             power = digits - digit;
             button = Spinner(0);
+            self.frequencySpinnerGroup.add(button);
             frequencyPanel.add(button);
+        self.frequencySpinnerGroup.setValue(self.controller.radio.getFrequency());
+        self.frequencySpinnerGroup.addUpdateHandler(self.frequencyUpdateListener);
 
         frequencyCenterPanel = Panel(AlignLayout(AlignLayout.CENTER));
         frequencyCenterPanel.add(frequencyPanel);
@@ -120,6 +125,9 @@ class MainView :
     def getController(self) :
         return self.controller;
 
+    def frequencyUpdateListener(self, spinnerGroup, value) :
+        self.controller.radio.setFrequency(value);
+
     def quitApplication(self, source=None) :
         self.keepRunning = False;
 
@@ -133,6 +141,7 @@ class MainView :
 
     def start(self) :
         self.buildUI();
+
         lastclick = 0;
         self.keepRunning = True;
         while self.keepRunning:

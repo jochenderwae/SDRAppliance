@@ -60,11 +60,14 @@ class Styling :
 style = Styling({
     "background.color": (0, 0, 0), # black background
     "foreground.color": (255, 255, 255), # white text
+    "placeholder.color": (64, 64, 64),
     "border.color":     None,
     "border.size":      None,
 
     "font.size":        18,
     "font.size.BandPanel": 24,
+
+    "font.size.Spinner": 50,
 
     "icon.settings.name": "settings.svg",
     "icon.settings.size": 32,
@@ -72,6 +75,10 @@ style = Styling({
     "icon.close.size":    32,
     "icon.play.name":     "play.svg",
     "icon.play.size":     32,
+    "icon.up.name":       "arrow-up.svg",
+    "icon.up.size":       32,
+    "icon.down.name":     "arrow-down.svg",
+    "icon.down.size":     32,
 
     "border.color.Button": (128, 128, 128),
     "border.size.Button":  1,

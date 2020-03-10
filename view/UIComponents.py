@@ -25,6 +25,7 @@
 # Enhancements over the original freqshow by Dan Stixrud, WQ7T
 import pygame
 import time
+import math
 from view.Styling import style
 
 
@@ -72,6 +73,9 @@ class UIComponent(object):
 		else :
 			self.id = "UIComponent_{}".format(UIComponent.idCounter);
 			UIComponent.idCounter += 1;
+		self.foregroundColor = style.getStyle(self, "foreground.color");
+		self.backgroundColor = style.getStyle(self, "background.color");
+		self.hover = False;
 
 	def getId(self) :
 		return self.id;
@@ -105,8 +109,7 @@ class UIComponent(object):
 			self.dirty = False;
 
 	def doRender(self, screen) :
-		backgroundColor = style.getStyle(self, "background.color");
-		screen.fill(backgroundColor, self.rect);
+		screen.fill(self.backgroundColor, self.rect);
 
 		borderColor = style.getStyle(self, "border.color");
 		borderSize  = style.getStyle(self, "border.size");
@@ -118,8 +121,37 @@ class UIComponent(object):
 		x, y, w, h = self.getRect();
 		if x <= mouseX < x + w and y <= mouseY <= y + h :
 			self.doHandleMouseEvent(event);
+			self.setHover(True);
+		else :
+			self.setHover(False);
+
+	def setHover(self, hover) :
+		if hover != self.hover :
+			self.invalidate();
+		self.hover = hover;
 
 	def doHandleMouseEvent(self, event) :
+		pass;
+
+	def renderText(self, screen, text, pos=None, color=None, font=None):
+		label = self.buildLabel(text, color, font);
+		if pos :
+			x, y = pos;
+		else :
+			x, y, w, h = self.getRect();
+		screen.blit(label, (x, y));
+
+	def buildLabel(self, text, color=None, font=None):
+		if not font :
+			font = style.getFont(self, "font");
+		if not color :
+			color = self.foregroundColor;
+		if self.backgroundColor is not None:
+			return font.render(text, True, color, self.backgroundColor);
+		else:
+			return font.render(text, True, color);
+
+	def renderBorder(self, screen):
 		pass;
 
 class Button(UIComponent):
@@ -170,14 +202,135 @@ class Button(UIComponent):
 class Spinner(UIComponent):
 	def __init__(self, value) :
 		super().__init__();
+		self.value = None;
+		self.digits = 1;
+		self.min = 0;
+		self.max = 9;
+		self.buttonEdge = 20;
+		self.upIcon = style.getIcon(self, "icon.up");
+		self.downIcon = style.getIcon(self, "icon.down");
+		self.textColor = style.getStyle(self, "foreground.color");
+		self.placeholderTextColor = style.getStyle(self, "placeholder.color");
+		self.focus = False;
+		self.mouseDownTime = 0;
+		self.updateHandlers = [];
+
+	def setValue(self, value) :
+		if value != self.value :
+			self.invalidate();
+		self.value = value;
+
+	def setRect(self, rect) :
+		super().setRect(rect);
+		x, y, w, h = rect;
+		self.buttonEdge = int(y + h / 2);
 
 	def getPreferredSize(self) :
 		w = 20;
 		h = 40;
 		return (w, h);
 
+	def addUpdateHandler(self, updateHandler) :
+		self.updateHandlers.append(updateHandler);
+
 	def doRender(self, screen) :
 		super().doRender(screen);
+		if self.value is not None :
+			self.renderText(screen, "{:1d}".format(self.value%10));
+		else :
+			self.renderText(screen, "0", color=self.placeholderTextColor);
+		if self.hover :
+			x, y, w, h = self.getRect();
+
+			ax, ay = align(self.upIcon.get_rect(), self.rect);
+			ay = y;
+			screen.blit(self.upIcon, (ax, ay));
+
+			ix, iy, iw, ih = self.downIcon.get_rect();
+			ax, ay = align(self.downIcon.get_rect(), self.rect);
+			ay = y + h - ih;
+			screen.blit(self.downIcon, (ax, ay));
+
+
+	def doHandleMouseEvent(self, event) :
+		mouseX, mouseY = event.dict['pos'];
+		if event.type == pygame.MOUSEBUTTONDOWN :
+			if time.time() - self.mouseDownTime > Button.CLICK_DEBOUNCE :
+				self.mouseDownTime = time.time();
+				if mouseY < self.buttonEdge :
+					self.updateValue(True);
+				else :
+					self.updateValue(False);
+
+
+	def updateValue(self, up) :
+		oldValue = self.value;
+		if up :
+			if self.value :
+				self.value = self.value + 1;
+				self.triggerValueUpdated(oldValue);
+				self.invalidate();
+			else:
+				self.value = 1;
+				self.triggerValueUpdated(oldValue);
+				self.invalidate();
+		else :
+			if self.value is not None :
+				self.value = self.value - 1;
+				self.triggerValueUpdated(oldValue);
+				self.invalidate();
+
+	def triggerValueUpdated(self, oldValue):
+		for handler in self.updateHandlers :
+			handler(self, oldValue, self.value);
+
+class SpinnerGroup :
+	def __init__(self) :
+		self.spinners = [];
+		self.value = 0;
+		self.updateHandlers = [];
+
+	def setValue(self, value) :
+		self.value = value;
+		index = len(self.spinners);
+		leadingZeros = True;
+		for spinner in self.spinners:
+			index -= 1;
+			digit = int(math.floor(self.value / (10 ** index))) % 10;
+			if digit > 0 :
+				leadingZeros = False;
+			if leadingZeros :
+				spinner.setValue(None);
+			else :
+				spinner.setValue(digit);
+
+	def add(self, spinner) :
+		self.spinners.append(spinner);
+		spinner.addUpdateHandler(self.childUpdateHandler);
+
+	def childUpdateHandler(self, spinner, oldValue, newValue) :
+		if oldValue is None :
+			oldValue = 0;
+		if newValue is None :
+			newValue = 0;
+		index = self.spinners.index(spinner);
+		difference = newValue - oldValue;
+		index = len(self.spinners) - index - 1;
+		scale = (10**index);
+		increment = scale * difference;
+		if self.value + increment < scale :
+			increment = scale * difference / 10;
+		self.setValue(self.value + increment);
+		self.triggerValueUpdated();
+
+	def addUpdateHandler(self, updateHandler) :
+		self.updateHandlers.append(updateHandler);
+
+	def triggerValueUpdated(self):
+		for handler in self.updateHandlers :
+			handler(self, self.value);
+
+
 
 class Slider(UIComponent):
 	def __init__(self, label, min=0, max=100) :
@@ -221,6 +374,17 @@ class Panel(UIComponent):
 	def doHandleMouseEvent(self, event) :
 		for child in self.children.keys() :
 			child.handleMouseEvent(event);
+
+	def invalidate(self) :
+		super().invalidate();
+		for child in self.children.keys() :
+			child.invalidate();
+
+	def setHover(self, hover) :
+		super().setHover(hover);
+		if not hover :
+			for child in self.children.keys() :
+				child.setHover(False);
 
 
 class ButtonGrid(object):

@@ -61,31 +61,31 @@ class SpectrumPanel(UIComponent):
 
     def doRender(self, screen) :
         super().doRender(screen);
-        if not self.data :
-            return;
-
-        # Convert scaled values to pixels drawn at the bottom of the display.
         x, y, w, h = self.getRect();
-        dataLength = len(self.data);
 
-        # Scale the FFT values to the range 0 to 1.
-        self.data = - (numpy.array(self.data, dtype=float) + self.minPower) / self.range;
-        self.data = numpy.pad(self.data, int((w - (dataLength%w)) / 2), mode='edge');
-        self.data = numpy.reshape(self.data, (w, int(len(self.data)/w)));
-        self.data = numpy.mean(self.data, axis=1);
+        if self.data is not None :
+            dataLength = len(self.data);
 
-        backgroundColor = style.getStyle(self, "background.color");
-        lineColor = style.getStyle(self, "line.color.graph");
-        self.graph.lock();
-        self.graph.fill(backgroundColor, (0, 0, w, h));
-        lasty = self.data[0];
-        for gx in range(1, w):
-            gy=self.data[gx-1];
-            pygame.draw.line(self.graph, lineColor, (gx-1, lasty*h), (gx, gy*h));
-            #pygame.draw.line(screen, freqshow.GRID_LINE, (i, y), (i, height))
-            lasty = gy;
-        self.graph.unlock()
+            # Scale the FFT values to the range 0 to 1.
+            self.data = - (numpy.array(self.data, dtype=float) + self.minPower) / self.range;
+            self.data = numpy.pad(self.data, int((w - (dataLength%w)) / 2), mode='edge');
+            self.data = numpy.reshape(self.data, (w, int(len(self.data)/w)));
+            self.data = numpy.mean(self.data, axis=1);
+
+            backgroundColor = style.getStyle(self, "background.color");
+            lineColor = style.getStyle(self, "line.color.graph");
+            self.graph.lock();
+            self.graph.fill(backgroundColor, (0, 0, w, h));
+            lasty = self.data[0];
+            for gx in range(1, w):
+                gy=self.data[gx-1];
+                pygame.draw.line(self.graph, lineColor, (gx-1, lasty*h), (gx, gy*h));
+                #pygame.draw.line(screen, freqshow.GRID_LINE, (i, y), (i, height))
+                lasty = gy;
+            self.graph.unlock();
+
         screen.blit(self.graph, (x, y), area=(0, 0, w, h))
+        self.data = None;
 
     def dataListener(self, radio, data) :
         self.data = data;
@@ -99,18 +99,21 @@ class BandPanel(UIComponent) :
         self.labels = {};
         self.tickLines = [];
         self.midLabel = None;
+        self.minorLineColor = style.getStyle(self, "line.color.minor");
+        self.majorLineColor = style.getStyle(self, "line.color.major");
+        self.centerLineColor = style.getStyle(self, "line.color.center");
+        self.font = style.getFont(self, "font");
+        self.foreground = style.getStyle(self, "foreground.color");
+        self.background = style.getStyle(self, "background.color");
 
     def getPreferredSize(self) :
         return (300, 50);
 
     def doRender(self, screen) :
         super().doRender(screen);
-        if not self.data :
+        if self.data is None :
             return;
 
-        minorLineColor = style.getStyle(self, "line.color.minor");
-        majorLineColor = style.getStyle(self, "line.color.major");
-        centerLineColor = style.getStyle(self, "line.color.center");
         dataLength = len(self.data);
         x, y, w, h = self.getRect();
 
@@ -121,29 +124,24 @@ class BandPanel(UIComponent) :
         for tickX in self.tickLines :
             tickX = tickX + offset / 2;
             tickX = int(tickX * w / dataLength);
-            pygame.draw.line(screen, minorLineColor, (x + tickX, y), (x + tickX, y + 10));
-
+            pygame.draw.line(screen, self.minorLineColor, (x + tickX, y), (x + tickX, y + 10));
 
         for gx in self.labels:
             label = self.labels[gx];
             labelX,labelY,labelWidth,labelHeight = label.get_rect();
             gx = gx + offset / 2;
             gx = int(gx * w / dataLength);
-            pygame.draw.line(screen, majorLineColor, (x + gx, y), (x + gx, y + h));
+            pygame.draw.line(screen, self.majorLineColor, (x + gx, y), (x + gx, y + h));
             screen.blit(label,(x + gx - labelWidth / 2, y + h - labelHeight));
 
         labelX,labelY,labelWidth,labelHeight = self.midLabel.get_rect();
         midX = midX + offset / 2;
         midX = int(midX * w / dataLength);
-        pygame.draw.line(screen, centerLineColor, (x + midX, y), (x + midX, y + h));
+        pygame.draw.line(screen, self.centerLineColor, (x + midX, y), (x + midX, y + h));
         screen.blit(self.midLabel,(x + midX - labelWidth / 2, y + labelHeight));
 
     def dataListener(self, radio, data) :
         self.data = data;
-
-        font = style.getFont(self, "font");
-        foreground = style.getStyle(self, "foreground.color");
-        background = style.getStyle(self, "background.color");
 
         mid = len(data)/2;
 
@@ -153,7 +151,7 @@ class BandPanel(UIComponent) :
 
         binFrequency = radio.getBinFrequency();
 
-        self.midLabel = font.render("{:9s}".format(Quantity(radio.frequency, "Hz")), True, foreground, background);
+        self.midLabel = self.font.render("{:9s}".format(Quantity(radio.frequency, "Hz")), True, self.foreground, self.background);
 
         self.tickLines = [];
         for i in range(19) :
@@ -165,10 +163,11 @@ class BandPanel(UIComponent) :
             if mid + (nearestFrequency - pos - radio.frequency) / binFrequency > 0 :
                 self.tickLines.append(mid + (nearestFrequency - pos - radio.frequency) / binFrequency);
 
+        self.labels = {};
         for step in [-1e6, 0, 1e6]:
             if not nearestFrequency + step == radio.frequency:
                 binsOffset = (nearestFrequency - radio.frequency + step) / binFrequency;
-                self.labels[mid + binsOffset] = font.render("{:9s}".format(Quantity(nearestFrequency + step, "Hz")), True, foreground, background);
+                self.labels[mid + binsOffset] = self.font.render("{:9s}".format(Quantity(nearestFrequency + step, "Hz")), True, self.foreground, self.background);
 
         self.invalidate();
 
@@ -194,30 +193,29 @@ class WaterfallPanel(UIComponent) :
 
     def doRender(self, screen) :
         super().doRender(screen);
-        if not self.data :
-            return;
-
-        # Convert scaled values to pixels drawn at the bottom of the display.
         x, y, w, h = self.getRect();
-        dataLength = len(self.data);
 
-        # Scroll up the waterfall display.
-        self.waterfall.scroll(0, 1);
+        if self.data is not None :
+            dataLength = len(self.data);
 
-        # Scale the FFT values to the range 0 to 1.
-        self.data = - (numpy.array(self.data, dtype=float) + self.minPower) / self.range;
-        self.data = numpy.pad(self.data, int((w - (dataLength%w)) / 2), mode='edge');
-        self.data = numpy.reshape(self.data, (w, int(len(self.data)/w)));
-        self.data = numpy.mean(self.data, axis=1);
+            # Scroll up the waterfall display.
+            self.waterfall.scroll(0, 1);
 
-        # Draw FFT values mapped through the gradient function to a color.
-        self.waterfall.lock();
+            # Scale the FFT values to the range 0 to 1.
+            self.data = - (numpy.array(self.data, dtype=float) + self.minPower) / self.range;
+            self.data = numpy.pad(self.data, int((w - (dataLength%w)) / 2), mode='edge');
+            self.data = numpy.reshape(self.data, (w, int(len(self.data)/w)));
+            self.data = numpy.mean(self.data, axis=1);
 
-        for gx in range(w) :
-            power = max(min(1 - self.data[gx], 1.0), 0.0);
-            self.waterfall.set_at((gx, 0), self.color_func(power))
-        self.waterfall.unlock()
+            # Draw FFT values mapped through the gradient function to a color.
+            self.waterfall.lock();
+
+            for gx in range(w) :
+                power = max(min(1 - self.data[gx], 1.0), 0.0);
+                self.waterfall.set_at((gx, 0), self.color_func(power))
+            self.waterfall.unlock();
         screen.blit(self.waterfall, (x, y), area=(0, 0, w, h))
+        self.data = None;
 
     def dataListener(self, radio, data) :
         self.data = data;
