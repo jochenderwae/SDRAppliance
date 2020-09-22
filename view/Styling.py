@@ -15,7 +15,12 @@ class Styling :
     def getStyle(self, component, key) :
         componentClass = type(component).__name__;
         componentId = component.getId();
-        keys = ["{}.{}.{}".format(key, componentClass, componentId),
+        componentDrawState = component.getDrawState();
+        keys = ["{}.{}.{}.{}".format(key, componentClass, componentId, componentDrawState),
+            "{}.{}.{}".format(key, componentId, componentDrawState),
+            "{}.{}.{}".format(key, componentClass, componentDrawState),
+            "{}.{}".format(key, componentDrawState),
+            "{}.{}.{}".format(key, componentClass, componentId),
             "{}.{}".format(key, componentId),
             "{}.{}".format(key, componentClass),
             key];
@@ -83,6 +88,9 @@ style = Styling({
 
     "border.color.Button": (128, 128, 128),
     "border.size.Button":  1,
+    "border.color.RadioButton": (128, 128, 128),
+    "border.size.RadioButton":  1,
+    "border.size.RadioButton.selected":3,
 
     "line.color.major":   (192, 192, 192),
     "line.color.minor":   (128, 128, 128),

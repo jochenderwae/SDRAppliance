@@ -68,6 +68,7 @@ class UIComponent(object):
 		self.rect = (0, 0, 0, 0);
 		self.visible = True;
 		self.preferredSize = (0, 0);
+		self.drawState = ""
 		if id :
 			self.id = id;
 		else :
@@ -79,6 +80,9 @@ class UIComponent(object):
 
 	def getId(self) :
 		return self.id;
+
+	def getDrawState(self) :
+		return self.drawState
 
 	def setRect(self, rect) :
 		if self.rect != rect:
@@ -114,7 +118,7 @@ class UIComponent(object):
 		borderColor = style.getStyle(self, "border.color");
 		borderSize  = style.getStyle(self, "border.size");
 		if borderColor and borderSize :
-			pygame.draw.rect(screen, borderColor, self.rect, borderSize);
+			pygame.draw.rect(screen, borderColor, self.rect, borderSize); # (self.rect[0], self.rect[1], self.rect[2] - borderSize + 1, self.rect[3] - borderSize + 1)
 
 	def handleMouseEvent(self, event) :
 		mouseX, mouseY = event.dict['pos'];
@@ -220,6 +224,63 @@ class Button(UIComponent):
 		if self.icon:
 			pos = align(self.icon.get_rect(), self.rect)
 			screen.blit(self.icon, pos)
+
+
+class RadioButton(Button):
+
+	def __init__(self, radioGroup, textOrIcon=None):
+		super().__init__();
+		self.label = None;
+		self.text = None;
+		self.icon = None;
+		self.selectedEvents = [];
+		self.mouseDownTime = 0;
+		self.selected = False;
+		self.radioGroup = radioGroup
+
+		self.radioGroup.add(self);
+
+		if isinstance(textOrIcon, str) :
+			self.text = textOrIcon;
+			self.label = render_text(self.text, font=style.getFont(self, "font"), fg=style.getStyle(self, "foreground.color"), bg=style.getStyle(self, "background.color"));
+		if isinstance(textOrIcon, pygame.Surface):
+			self.icon = textOrIcon;
+
+		super().addClickEvent(self.handleClickedEvent)
+
+	def addSelectedEvent(self, event) :
+		self.selectedEvents.append(event);
+
+	def handleClickedEvent(self, event) :
+		self.setSelected(True)
+
+	def setSelected(self, selected) :
+		self.selected = selected
+		self.drawState = ""
+		if self.selected :
+			self.drawState = "selected"
+			self.radioGroup.setSelected(self)
+			for handler in self.selectedEvents :
+				handler(self, self.selected)
+		self.invalidate()
+
+
+
+
+class RadioGroup :
+	def __init__(self) :
+		self.radioButtons = []
+		self.selected = None
+
+	def add(self, radioButton) :
+		self.radioButtons.append(radioButton)
+
+	def setSelected(self, radioButton) :
+		if self.selected != None :
+			self.selected.setSelected(False)
+
+		self.selected = radioButton
+
 
 class Spinner(UIComponent):
 	def __init__(self, value) :

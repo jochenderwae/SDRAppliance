@@ -46,6 +46,9 @@ class MainView :
     def getId(self) :
         return "MainView";
 
+    def getDrawState(self) :
+        return "";
+
     def buildUI(self) :
         frequencyPanel = Panel(GridLayout(rows=1));
         digits = 10;
@@ -102,13 +105,14 @@ class MainView :
 
         bottomButtonPanel = Panel(GridLayout(cols=2));
         demodulators = self.controller.getDemodulators();
+        radioGroup = RadioGroup();
         for demodulator in demodulators :
             def buildOnClick(controller, demod) :
                 def onClick(source) :
                     controller.setDemodulator(demod)
                 return onClick
 
-            demodulatorButton = Button(demodulator);
+            demodulatorButton = RadioButton(radioGroup, demodulator);
             demodulatorButton.addClickEvent(buildOnClick(self.controller, demodulator));
             bottomButtonPanel.add(demodulatorButton);
 
