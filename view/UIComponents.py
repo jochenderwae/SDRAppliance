@@ -233,6 +233,7 @@ class Spinner(UIComponent):
 		self.downIcon = style.getIcon(self, "icon.down");
 		self.textColor = style.getStyle(self, "foreground.color");
 		self.placeholderTextColor = style.getStyle(self, "placeholder.color");
+		self.maskColor = style.getStyle(self, "mask.color");
 		self.focus = False;
 		self.mouseDownTime = 0;
 		self.updateHandlers = [];
@@ -264,13 +265,14 @@ class Spinner(UIComponent):
 		if self.hover :
 			x, y, w, h = self.getRect();
 
-			ax, ay = align(self.upIcon.get_rect(), self.rect);
-			ay = y;
+			s = pygame.Surface((w, h), pygame.SRCALPHA);
+			s.fill(self.maskColor, (0, 0, w, h));
+			screen.blit(s, (x, y));
+
+			ax, ay = align(self.upIcon.get_rect(), self.rect, vertical=ALIGN_TOP);
 			screen.blit(self.upIcon, (ax, ay));
 
-			ix, iy, iw, ih = self.downIcon.get_rect();
-			ax, ay = align(self.downIcon.get_rect(), self.rect);
-			ay = y + h - ih;
+			ax, ay = align(self.downIcon.get_rect(), self.rect, vertical=ALIGN_BOTTOM, vpad=-8);
 			screen.blit(self.downIcon, (ax, ay));
 
 

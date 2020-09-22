@@ -61,6 +61,7 @@ style = Styling({
     "background.color": (0, 0, 0), # black background
     "foreground.color": (255, 255, 255), # white text
     "placeholder.color": (64, 64, 64),
+    "mask.color":       (0, 0, 0, 192),
     "border.color":     None,
     "border.size":      None,
 
@@ -70,15 +71,15 @@ style = Styling({
     "font.size.Spinner": 50,
 
     "icon.settings.name": "settings.svg",
-    "icon.settings.size": 32,
+    "icon.settings.size": 24,
     "icon.close.name":    "x.svg",
-    "icon.close.size":    32,
+    "icon.close.size":    24,
     "icon.play.name":     "play.svg",
-    "icon.play.size":     32,
+    "icon.play.size":     24,
     "icon.up.name":       "arrow-up.svg",
-    "icon.up.size":       32,
+    "icon.up.size":       24,
     "icon.down.name":     "arrow-down.svg",
-    "icon.down.size":     32,
+    "icon.down.size":     24,
 
     "border.color.Button": (128, 128, 128),
     "border.size.Button":  1,
