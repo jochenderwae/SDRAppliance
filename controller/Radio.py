@@ -159,7 +159,7 @@ class Radio(gr.top_block):
     def getVolume(self):
         return self.volume;
 
-    def set_volume(self, volume):
+    def setVolume(self, volume):
         self.volume = volume;
         self.leftVolume.set_k(self.volume);
         self.rightVolume.set_k(self.volume);

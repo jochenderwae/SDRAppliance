@@ -92,6 +92,11 @@ style = Styling({
     "border.size.RadioButton":  1,
     "border.size.RadioButton.selected":3,
 
+    "slider.border.color":     (128, 128, 128),
+    "slider.border.size":      1,
+    "border.color.Slider":     (128, 128, 128),
+    "border.size.Slider":      1,
+
     "line.color.major":   (192, 192, 192),
     "line.color.minor":   (128, 128, 128),
     "line.color.center":  (255, 255, 255),

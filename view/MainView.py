@@ -95,8 +95,12 @@ class MainView :
         topButtonPanel.add(exitButton);
 
 
-        volumeSlider = Slider("Volume", min=0, max=100);
-        gainSlider = Slider("Gain", min=0, max=30);
+        volumeSlider = Slider("Volume", min=0, max=100)
+        volumeSlider.setValue(self.controller.radio.getVolume())
+        volumeSlider.addUpdateHandler(self.volumeUpdateListener)
+        gainSlider = Slider("Gain", min=0, max=30)
+        gainSlider.setValue(self.controller.radio.getGain())
+        gainSlider.addUpdateHandler(self.gainUpdateListener)
 
         sliderPanel = Panel(GridLayout(cols=2));
         sliderPanel.add(volumeSlider);
@@ -140,6 +144,12 @@ class MainView :
 
     def frequencyUpdateListener(self, spinnerGroup, value) :
         self.controller.radio.setFrequency(value);
+
+    def volumeUpdateListener(self, slider, oldValue, value) :
+        self.controller.radio.setVolume(value);
+
+    def gainUpdateListener(self, slider, oldValue, value) :
+        self.controller.radio.setGain(value);
 
     def quitApplication(self, source=None) :
         self.keepRunning = False;

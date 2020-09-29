@@ -418,19 +418,113 @@ class SpinnerGroup :
 
 
 class Slider(UIComponent):
-	def __init__(self, label, min=0, max=100) :
-		super().__init__();
-		self.label = label;
-		self.min = min;
-		self.max = max;
+	def __init__(self, label, value=0, min=0, max=100) :
+		super().__init__()
+		self.label = label
+		self.min = min
+		self.max = max
+		self.value = value
+		self.upIcon = style.getIcon(self, "icon.up")
+		self.downIcon = style.getIcon(self, "icon.down")
+		self.borderColor = style.getStyle(self, "slider.border.color")
+		self.borderSize  = style.getStyle(self, "slider.border.size")
+		self.buttonEdge = 20
+		self.mouseDownTime = 0
+		self.updateHandlers = []
 
 	def getPreferredSize(self) :
-		w = 20;
-		h = 100;
-		return (w, h);
+		w = 20
+		h = 100
+		return (w, h)
+
+	def setValue(self, value) :
+		self.value = value
+		self.invalidate()
+
+	def getValue(self) :
+		return self.value
+
+	def setMin(self, min) :
+		self.min = min
+		self.invalidate()
+
+	def getMin(self) :
+		return self.min
+
+	def setMax(self, max) :
+		self.max = max
+		self.invalidate()
+
+	def getMax(self) :
+		self.max
 
 	def doRender(self, screen) :
-		super().doRender(screen);
+		super().doRender(screen)
+
+		upx, upy, upw, uph = self.upIcon.get_rect()
+		upx, upy = align(self.upIcon.get_rect(), self.rect, vertical=ALIGN_TOP)
+		screen.blit(self.upIcon, (upx, upy))
+
+		downx, downy, downw, downh = self.upIcon.get_rect()
+		downx, downy = align(self.downIcon.get_rect(), self.rect, vertical=ALIGN_BOTTOM, vpad=-8)
+		screen.blit(self.downIcon, (downx, downy))
+
+		selfx, selfy, selfw, selfh = self.rect
+		sliderBackgroundx = selfx + 1
+		sliderBackgroundy = upy + uph
+		sliderBackgroundw = selfw - 2
+		sliderBackgroundh = downy - sliderBackgroundy
+		sliderBackgroundRect = (sliderBackgroundx, sliderBackgroundy, sliderBackgroundw, sliderBackgroundh)
+
+		pygame.draw.rect(screen, self.borderColor, sliderBackgroundRect, self.borderSize)
+
+		sliderx = sliderBackgroundx + 1
+		sliderw = sliderBackgroundw - 2
+		sliderh = sliderw
+
+		steps = self.max - self.min
+		normalizedValue = self.value - self.min
+		sliderExtent = sliderBackgroundh - sliderh
+		slidery = sliderBackgroundy + sliderBackgroundh - math.floor(sliderExtent * (normalizedValue / steps)) - sliderh
+
+		sliderRect = (sliderx, slidery, sliderw, sliderh)
+		pygame.draw.rect(screen, self.borderColor, sliderRect, self.borderSize)
+
+	def setRect(self, rect) :
+		super().setRect(rect)
+		x, y, w, h = rect
+		self.buttonEdge = int(y + h / 2)
+
+	def doHandleMouseEvent(self, event) :
+		mouseX, mouseY = event.dict['pos']
+		if event.type == pygame.MOUSEBUTTONDOWN :
+			if time.time() - self.mouseDownTime > Button.CLICK_DEBOUNCE :
+				self.mouseDownTime = time.time()
+				if mouseY < self.buttonEdge :
+					self.updateValue(1)
+				else :
+					self.updateValue(-1)
+
+	def updateValue(self, value) :
+		oldValue = self.value
+		self.value += value
+
+		if self.value > self.max :
+			self.value = self.max
+
+		if self.value < self.min :
+			self.value = self.min
+
+		if self.value != oldValue :
+			self.triggerValueUpdated(oldValue)
+			self.invalidate()
+
+	def triggerValueUpdated(self, oldValue):
+		for handler in self.updateHandlers :
+			handler(self, oldValue, self.value)
+
+	def addUpdateHandler(self, updateHandler) :
+		self.updateHandlers.append(updateHandler)
 
 class Panel(UIComponent):
 	def __init__(self, layoutManager = None) :
